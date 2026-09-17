@@ -1,0 +1,89 @@
+// Qo'shrabotliklar.uz — ma'lumotlar bazasi sxemasi
+// PostgreSQL (Railway "Postgres" plugin bilan ishlatish uchun mo'ljallangan)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  MODERATOR
+}
+
+enum SubmissionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model AdminUser {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  role         Role     @default(MODERATOR)
+  createdAt    DateTime @default(now())
+}
+
+// "Mashhur qo'shrabotliklar" — jamoa tomonidan to'ldiriladigan taniqli kishilar katalogi
+model Person {
+  id          String            @id @default(cuid())
+  fullName    String
+  category    String // masalan: "Olim", "Sportchi", "San'atkor", "Tadbirkor", "Davlat arbobi"
+  village     String? // qaysi MFY/qishloqdan
+  bio         String            @db.Text
+  achievement String? // asosiy yutuq/nom bilan mashhurligi
+  photoUrl    String?
+  sourceUrl   String? // tasdiqlovchi manba havolasi
+  status      SubmissionStatus  @default(PENDING)
+  featured    Boolean           @default(false)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+}
+
+// Diqqatga sazovor joylar — tabiiy, tarixiy va zamonaviy obyektlar
+model Place {
+  id          String           @id @default(cuid())
+  title       String
+  type        String // "Tarixiy", "Tabiat", "Ziyoratgoh", "Bozor", "Zamonaviy obyekt"
+  description String           @db.Text
+  village     String?
+  mapUrl      String? // Google Maps havolasi
+  lat         Float?
+  lng         Float?
+  photoUrl    String?
+  status      SubmissionStatus @default(PENDING)
+  featured    Boolean          @default(false)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+}
+
+model NewsPost {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  title     String
+  excerpt   String
+  content   String   @db.Text
+  coverUrl  String?
+  published Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ContactMessage {
+  id        String   @id @default(cuid())
+  name      String
+  phone     String?
+  email     String?
+  message   String   @db.Text
+  handled   Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+// Foydalanuvchilar tomonidan yuboriladigan "Mashhur kishi/joy taklif qilish" so'rovlari
+// moderatsiyadan o'tgach Person/Place jadvaliga aylantiriladi (status maydoni orqali kuzatiladi)
