@@ -20,16 +20,18 @@ export default async function NewsPostPage({ params }: { params: { slug: string 
   });
 
   return (
-    <article className="mx-auto max-w-3xl px-5 py-20 sm:px-8">
-      <Link href="/yangiliklar" className="text-sm font-bold text-clay-600 hover:text-clay-700">
-        ← Yangiliklarga qaytish
+    <article className="mx-auto max-w-3xl px-5 py-16 sm:px-8 sm:py-24">
+      <Link href="/yangiliklar" className="link scrim text-sm">
+        Barcha yangiliklar
       </Link>
-      <span className="mt-6 block text-xs font-semibold uppercase tracking-wide text-ink-800/50">
-        {date}
-      </span>
-      <h1 className="mt-2 font-display text-3xl font-extrabold text-ink-900 sm:text-4xl">{post.title}</h1>
-      <div className="prose prose-neutral mt-8 max-w-none whitespace-pre-wrap text-base leading-relaxed text-ink-800/85">
-        {post.content}
+      <div className="panel mt-6 p-7 sm:p-12">
+        <time dateTime={post.createdAt} className="text-sm text-qor-500">
+          {date}
+        </time>
+        <h1 className="mt-3 font-display text-2xl font-bold leading-tight text-qor-50 sm:text-4xl">{post.title}</h1>
+        <div className="mt-8 max-w-prose whitespace-pre-wrap text-base leading-relaxed text-qor-100/90">
+          {post.content}
+        </div>
       </div>
     </article>
   );

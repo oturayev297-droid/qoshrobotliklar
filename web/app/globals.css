@@ -2,25 +2,59 @@
 @tailwind components;
 @tailwind utilities;
 
-html {
-  scroll-behavior: smooth;
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
 }
 
 body {
-  background-color: #fbf7f0;
-  color: #1b160f;
+  background-color: #0b1022;
+  color: #e6e9f2;
 }
 
-.line-clamp-3 {
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+/* WebGL yuklanguncha yoki mavjud bo'lmasa ko'rinadigan oqshom osmoni */
+.scene-fallback {
+  background: linear-gradient(180deg, #0c1230 0%, #343a72 58%, #b97a78 85%, #e0976c 100%);
 }
 
-.line-clamp-4 {
-  display: -webkit-box;
-  -webkit-line-clamp: 4;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+::selection {
+  background: #eebf55;
+  color: #0b1022;
+}
+
+:focus-visible {
+  outline: 2px solid #f3d38a;
+  outline-offset: 3px;
+}
+
+@layer components {
+  .panel {
+    @apply rounded-[28px] border border-qor-50/10 bg-tun-900/75 backdrop-blur-md;
+  }
+  .tile {
+    @apply rounded-2xl border border-qor-50/10 bg-tun-950/65 backdrop-blur-sm transition-colors;
+  }
+  .btn-primary {
+    @apply inline-flex items-center justify-center rounded-full bg-zar-400 px-6 py-3 text-sm font-semibold text-tun-950 transition-colors hover:bg-zar-300 disabled:opacity-60;
+  }
+  .btn-ghost {
+    @apply inline-flex items-center justify-center rounded-full border border-qor-50/25 bg-tun-950/30 px-6 py-3 text-sm font-semibold text-qor-50 backdrop-blur-sm transition-colors hover:bg-qor-50/10;
+  }
+  .link {
+    @apply font-semibold text-zar-300 underline-offset-4 hover:underline;
+  }
+  .field-label {
+    @apply mb-1.5 block text-sm font-medium text-qor-100;
+  }
+  .field {
+    @apply w-full rounded-xl border border-qor-50/15 bg-tun-950/60 px-4 py-3 text-sm text-qor-50 outline-none transition placeholder:text-qor-500 focus:border-zar-400/70 focus:ring-4 focus:ring-zar-400/15;
+  }
+  .field option {
+    background: #121937;
+  }
+  /* Manzara ustidagi matn o'qilishi uchun */
+  .scrim {
+    text-shadow: 0 2px 24px rgba(8, 11, 26, 0.85);
+  }
 }

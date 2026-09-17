@@ -1,21 +1,20 @@
 import type { Metadata } from "next";
-import SectionHeading from "@/components/SectionHeading";
+import PageHeader from "@/components/PageHeader";
 import PersonSubmitForm from "@/components/PersonSubmitForm";
 
 export const metadata: Metadata = {
-  title: "Kishi taklif qilish",
+  title: "Kishini taklif qilish",
   description: "Qo'shrabotdan yetishib chiqqan taniqli insonni saytga taklif qiling.",
 };
 
 export default function TaklifPage() {
   return (
-    <div className="mx-auto max-w-2xl px-5 py-20 sm:px-8">
-      <SectionHeading
-        eyebrow="Hissa qo'shing"
+    <div className="mx-auto max-w-3xl px-5 py-16 sm:px-8 sm:py-24">
+      <PageHeader
         title="Taniqli qo'shrabotlikni taklif qiling"
-        description="Formani to'ldiring — ma'lumot moderator tomonidan tekshirilgach, 'Mashhur kishilar' sahifasida e'lon qilinadi."
+        description="Moderator ma'lumotni tekshirgach, u Mashhur kishilar sahifasida chiqadi."
       />
-      <div className="mt-10 rounded-2xl border border-sand-200 bg-sand-50 p-6 shadow-soft sm:p-8">
+      <div className="panel mt-10 p-6 sm:p-10">
         <PersonSubmitForm />
       </div>
     </div>

@@ -28,16 +28,16 @@ export default function PersonSubmitForm() {
       formEl.reset();
     } else {
       setStatus("error");
-      setErrorMsg(res.error || "Xatolik yuz berdi");
+      setErrorMsg(res.error || "Taklif yuborilmadi. Maydonlarni tekshirib, qayta yuboring.");
     }
   }
 
   if (status === "done") {
     return (
-      <div className="rounded-2xl border border-deep-600/30 bg-deep-700/5 p-8 text-center">
-        <p className="text-lg font-bold text-deep-700">Taklifingiz uchun rahmat!</p>
-        <p className="mt-2 text-sm text-ink-800/70">
-          Moderator tomonidan ko&#39;rib chiqilgach, &quot;Mashhur kishilar&quot; sahifasida chop etiladi.
+      <div role="status" className="rounded-2xl border border-zar-400/30 bg-zar-400/10 p-8 text-center">
+        <p className="font-display text-lg font-bold text-qor-50">Taklifingiz yuborildi</p>
+        <p className="mt-2 text-sm text-qor-300">
+          Moderator tekshirgach, u &quot;Mashhur kishilar&quot; sahifasida chiqadi.
         </p>
       </div>
     );
@@ -47,22 +47,16 @@ export default function PersonSubmitForm() {
     <form onSubmit={onSubmit} className="grid gap-4">
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
-          <label className="mb-1.5 block text-sm font-semibold text-ink-900">To&#39;liq ism</label>
-          <input
-            name="fullName"
-            required
-            minLength={3}
-            placeholder="Ism Familiya"
-            className="w-full rounded-xl border border-sand-200 bg-white px-4 py-3 text-sm outline-none ring-clay-500/30 transition focus:ring-4"
-          />
+          <label htmlFor="fullName" className="field-label">
+            To&#39;liq ism
+          </label>
+          <input id="fullName" name="fullName" required minLength={3} placeholder="Ism Familiya" className="field" />
         </div>
         <div>
-          <label className="mb-1.5 block text-sm font-semibold text-ink-900">Sohasi</label>
-          <select
-            name="category"
-            required
-            className="w-full rounded-xl border border-sand-200 bg-white px-4 py-3 text-sm outline-none ring-clay-500/30 transition focus:ring-4"
-          >
+          <label htmlFor="category" className="field-label">
+            Sohasi
+          </label>
+          <select id="category" name="category" required className="field">
             {CATEGORIES.map((c) => (
               <option key={c} value={c}>
                 {c}
@@ -74,54 +68,48 @@ export default function PersonSubmitForm() {
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
-          <label className="mb-1.5 block text-sm font-semibold text-ink-900">MFY / Qishloq</label>
-          <input
-            name="village"
-            placeholder="Masalan: Jo'sh MFY"
-            className="w-full rounded-xl border border-sand-200 bg-white px-4 py-3 text-sm outline-none ring-clay-500/30 transition focus:ring-4"
-          />
+          <label htmlFor="village" className="field-label">
+            MFY yoki qishloq
+          </label>
+          <input id="village" name="village" placeholder="Masalan: Jo'sh MFY" className="field" />
         </div>
         <div>
-          <label className="mb-1.5 block text-sm font-semibold text-ink-900">Asosiy yutuq</label>
-          <input
-            name="achievement"
-            placeholder="Nima bilan mashhur?"
-            className="w-full rounded-xl border border-sand-200 bg-white px-4 py-3 text-sm outline-none ring-clay-500/30 transition focus:ring-4"
-          />
+          <label htmlFor="achievement" className="field-label">
+            Asosiy yutug&#39;i
+          </label>
+          <input id="achievement" name="achievement" placeholder="Nima bilan tanilgan?" className="field" />
         </div>
       </div>
 
       <div>
-        <label className="mb-1.5 block text-sm font-semibold text-ink-900">Qisqacha tarjimai hol</label>
+        <label htmlFor="bio" className="field-label">
+          Qisqacha tarjimai hol
+        </label>
         <textarea
+          id="bio"
           name="bio"
           required
           minLength={20}
           rows={5}
-          placeholder="Bu inson haqida qisqacha ma'lumot yozing (kamida 20 belgi)..."
-          className="w-full rounded-xl border border-sand-200 bg-white px-4 py-3 text-sm outline-none ring-clay-500/30 transition focus:ring-4"
+          placeholder="Kamida 20 belgi"
+          className="field"
         />
       </div>
 
       <div>
-        <label className="mb-1.5 block text-sm font-semibold text-ink-900">
-          Manba havolasi <span className="font-normal text-ink-800/50">(ixtiyoriy, tasdiqlash uchun)</span>
+        <label htmlFor="sourceUrl" className="field-label">
+          Manba havolasi <span className="font-normal text-qor-500">(ixtiyoriy, tekshirish uchun)</span>
         </label>
-        <input
-          name="sourceUrl"
-          type="url"
-          placeholder="https://..."
-          className="w-full rounded-xl border border-sand-200 bg-white px-4 py-3 text-sm outline-none ring-clay-500/30 transition focus:ring-4"
-        />
+        <input id="sourceUrl" name="sourceUrl" type="url" placeholder="https://..." className="field" />
       </div>
 
-      {status === "error" && <p className="text-sm font-semibold text-red-600">{errorMsg}</p>}
+      {status === "error" && (
+        <p role="alert" className="text-sm font-medium text-red-300">
+          {errorMsg}
+        </p>
+      )}
 
-      <button
-        type="submit"
-        disabled={status === "loading"}
-        className="w-fit rounded-full bg-clay-500 px-7 py-3 text-sm font-bold text-sand-50 shadow-soft transition hover:bg-clay-600 disabled:opacity-60"
-      >
+      <button type="submit" disabled={status === "loading"} className="btn-primary w-fit">
         {status === "loading" ? "Yuborilmoqda..." : "Taklifni yuborish"}
       </button>
     </form>

@@ -24,15 +24,15 @@ export default function ContactForm() {
       formEl.reset();
     } else {
       setStatus("error");
-      setErrorMsg(res.error || "Xatolik yuz berdi");
+      setErrorMsg(res.error || "Xabar yuborilmadi. Maydonlarni tekshirib, qayta yuboring.");
     }
   }
 
   if (status === "done") {
     return (
-      <div className="rounded-2xl border border-deep-600/30 bg-deep-700/5 p-8 text-center">
-        <p className="text-lg font-bold text-deep-700">Rahmat! Xabaringiz qabul qilindi.</p>
-        <p className="mt-2 text-sm text-ink-800/70">Tez orada siz bilan bog&#39;lanamiz.</p>
+      <div role="status" className="rounded-2xl border border-zar-400/30 bg-zar-400/10 p-8 text-center">
+        <p className="font-display text-lg font-bold text-qor-50">Xabaringiz yuborildi</p>
+        <p className="mt-2 text-sm text-qor-300">Tez orada siz bilan bog&#39;lanamiz.</p>
       </div>
     );
   }
@@ -40,27 +40,30 @@ export default function ContactForm() {
   return (
     <form onSubmit={onSubmit} className="grid gap-4">
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="Ismingiz" name="name" required placeholder="Ismingizni kiriting" />
-        <Field label="Telefon" name="phone" placeholder="+998 90 123 45 67" />
+        <Field label="Ismingiz" name="name" required placeholder="Ism Familiya" />
+        <Field label="Telefon" name="phone" type="tel" placeholder="+998 90 123 45 67" />
       </div>
       <Field label="Email" name="email" type="email" placeholder="email@misol.uz" />
       <div>
-        <label className="mb-1.5 block text-sm font-semibold text-ink-900">Xabar</label>
+        <label htmlFor="message" className="field-label">
+          Xabar
+        </label>
         <textarea
+          id="message"
           name="message"
           required
           minLength={10}
           rows={5}
-          placeholder="Fikringiz, taklifingiz yoki savolingizni yozing..."
-          className="w-full rounded-xl border border-sand-200 bg-white px-4 py-3 text-sm outline-none ring-clay-500/30 transition focus:ring-4"
+          placeholder="Savol, taklif yoki tuzatish kerak bo'lgan ma'lumot"
+          className="field"
         />
       </div>
-      {status === "error" && <p className="text-sm font-semibold text-red-600">{errorMsg}</p>}
-      <button
-        type="submit"
-        disabled={status === "loading"}
-        className="w-fit rounded-full bg-clay-500 px-7 py-3 text-sm font-bold text-sand-50 shadow-soft transition hover:bg-clay-600 disabled:opacity-60"
-      >
+      {status === "error" && (
+        <p role="alert" className="text-sm font-medium text-red-300">
+          {errorMsg}
+        </p>
+      )}
+      <button type="submit" disabled={status === "loading"} className="btn-primary w-fit">
         {status === "loading" ? "Yuborilmoqda..." : "Xabarni yuborish"}
       </button>
     </form>
@@ -82,14 +85,10 @@ function Field({
 }) {
   return (
     <div>
-      <label className="mb-1.5 block text-sm font-semibold text-ink-900">{label}</label>
-      <input
-        type={type}
-        name={name}
-        required={required}
-        placeholder={placeholder}
-        className="w-full rounded-xl border border-sand-200 bg-white px-4 py-3 text-sm outline-none ring-clay-500/30 transition focus:ring-4"
-      />
+      <label htmlFor={name} className="field-label">
+        {label}
+      </label>
+      <input id={name} type={type} name={name} required={required} placeholder={placeholder} className="field" />
     </div>
   );
 }

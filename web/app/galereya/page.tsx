@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import SectionHeading from "@/components/SectionHeading";
+import PageHeader from "@/components/PageHeader";
+import EmptyState from "@/components/EmptyState";
 import { getPlaces } from "@/lib/api";
 
 export const metadata: Metadata = {
@@ -12,34 +13,28 @@ export default async function GalereyaPage() {
   const withPhotos = places.filter((p) => p.photoUrl);
 
   return (
-    <div className="mx-auto max-w-7xl px-5 py-20 sm:px-8">
-      <SectionHeading
-        eyebrow="Galereya"
+    <div className="mx-auto max-w-7xl px-5 py-16 sm:px-8 sm:py-24">
+      <PageHeader
         title="Qo'shrabot suratlarda"
-        description="Hamjamiyat a'zolari tomonidan yuborilgan suratlar. O'z rasmlaringizni ulashmoqchimisiz? Aloqa sahifasi orqali yuboring."
+        description="Hamjamiyat yuborgan suratlar. O'z suratingizni ulashish uchun Aloqa sahifasidan yozing."
       />
 
       {withPhotos.length > 0 ? (
-        <div className="mt-12 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+        <div className="mt-12 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
           {withPhotos.map((p) => (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              key={p.id}
-              src={p.photoUrl as string}
-              alt={p.title}
-              className="aspect-square w-full rounded-2xl object-cover shadow-soft"
-            />
+            <figure key={p.id} className="tile overflow-hidden">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={p.photoUrl as string} alt={p.title} className="aspect-square w-full object-cover" />
+              <figcaption className="px-3 py-2 text-sm text-qor-300">{p.title}</figcaption>
+            </figure>
           ))}
         </div>
       ) : (
-        <div className="mt-12 rounded-2xl border border-dashed border-sand-300 bg-sand-100/50 p-14 text-center">
-          <p className="text-3xl">📷</p>
-          <p className="mx-auto mt-4 max-w-md text-ink-800/70">
-            Galereya hali bo&#39;sh. Qo&#39;shrabotning go&#39;zal manzaralari, mahalliy bayramlar yoki
-            tarixiy joylar suratlarini &quot;Aloqa&quot; sahifasi orqali yuboring — birinchilardan bo&#39;lib
-            galereyaga qo&#39;shamiz.
-          </p>
-        </div>
+        <EmptyState
+          text="Galereya hali bo'sh. Manzara, bayram yoki tarixiy joy suratlarini yuboring, birinchilardan bo'lib joylaymiz."
+          href="/aloqa"
+          cta="Surat yuborish"
+        />
       )}
     </div>
   );

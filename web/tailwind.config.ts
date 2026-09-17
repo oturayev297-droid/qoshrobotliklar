@@ -1,44 +1,40 @@
 import type { Config } from "tailwindcss";
 
+// Ranglar Samarqand koshinlaridan: tun (lojuvard osmon), zar (oltin), qor (tog' cho'qqilari)
 const config: Config = {
   content: ["./app/**/*.{js,ts,jsx,tsx,mdx}", "./components/**/*.{js,ts,jsx,tsx,mdx}"],
   theme: {
     extend: {
       colors: {
-        sand: {
-          50: "#FBF7F0",
-          100: "#F5EDE0",
-          200: "#EBDFC7",
-          300: "#DCC9A3",
+        tun: {
+          950: "#0b1022",
+          900: "#121937",
+          800: "#1b2448",
+          700: "#27325e",
+          600: "#384578",
         },
-        clay: {
-          400: "#D48A54",
-          500: "#C1652F",
-          600: "#A6501F",
-          700: "#833E17",
+        zar: {
+          200: "#f8e6b6",
+          300: "#f3d38a",
+          400: "#eebf55",
+          500: "#d9a333",
+          600: "#b0801c",
         },
-        deep: {
-          500: "#2C7A8C",
-          600: "#1F5C73",
-          700: "#164A5E",
-          800: "#0E3542",
-          900: "#0A222B",
+        lojuvard: {
+          300: "#a9c2f5",
+          400: "#7399e6",
+          500: "#4b72cf",
         },
-        ink: {
-          800: "#2B241C",
-          900: "#1B160F",
+        qor: {
+          50: "#f4f5f9",
+          100: "#e6e9f2",
+          300: "#b9bfd3",
+          500: "#8c93ab",
         },
       },
       fontFamily: {
-        display: ["var(--font-manrope)", "sans-serif"],
-        body: ["var(--font-inter)", "sans-serif"],
-      },
-      backgroundImage: {
-        "grain-pattern":
-          "radial-gradient(circle at 1px 1px, rgba(27,22,15,0.06) 1px, transparent 0)",
-      },
-      boxShadow: {
-        soft: "0 10px 40px -12px rgba(27,22,15,0.18)",
+        display: ["var(--font-unbounded)", "sans-serif"],
+        body: ["var(--font-onest)", "sans-serif"],
       },
     },
   },

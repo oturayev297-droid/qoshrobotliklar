@@ -1,11 +1,12 @@
-import type { Metadata } from "next";
-import { Inter, Manrope } from "next/font/google";
+import type { Metadata, Viewport } from "next";
+import { Onest, Unbounded } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import SceneBackground from "@/components/SceneBackground";
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
-const manrope = Manrope({ subsets: ["latin"], variable: "--font-manrope", weight: ["600", "700", "800"] });
+const onest = Onest({ subsets: ["latin", "cyrillic"], variable: "--font-onest" });
+const unbounded = Unbounded({ subsets: ["latin", "cyrillic"], variable: "--font-unbounded", weight: ["500", "700"] });
 
 export const metadata: Metadata = {
   title: {
@@ -17,10 +18,15 @@ export const metadata: Metadata = {
   keywords: ["Qoshrabot", "Qo'shrabot", "Samarqand", "Qo'shrabot tumani", "Qoshrabotliklar"],
 };
 
+export const viewport: Viewport = {
+  themeColor: "#0b1022",
+};
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="uz" className={`${inter.variable} ${manrope.variable}`}>
-      <body className="flex min-h-screen flex-col font-body antialiased">
+    <html lang="uz" className={`${onest.variable} ${unbounded.variable}`}>
+      <body className="flex min-h-screen flex-col font-body text-qor-100 antialiased">
+        <SceneBackground />
         <Header />
         <main className="flex-1">{children}</main>
         <Footer />
