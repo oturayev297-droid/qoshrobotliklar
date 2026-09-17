@@ -1,15 +1,18 @@
 import * as THREE from "three";
 
 // Qo'shrabot vodiysi: Nurota tog'lari orasidan o'tuvchi yo'l.
-// Scroll 0 → tepadan vodiy ko'rinishi, scroll 1 → yo'l ustida, mashinalar yonida.
+// Har sahifa vodiyning o'z joyidan ochiladi (station), sahifa almashganda kamera o'sha joyga uchadi.
+// Scroll 0 → sahifaning o'z ko'rinishi, scroll 1 → yo'l ustida, mashinalar yonida.
 
 export interface LandscapeOptions {
   reducedMotion: boolean;
   lowPower: boolean;
+  pathname: string;
 }
 
 export interface Landscape {
   setProgress(p: number): void;
+  setRoute(pathname: string): void;
   dispose(): void;
 }
 
@@ -17,6 +20,52 @@ const Z_START = 260;
 const Z_END = -1400;
 const ROAD_HALF_WIDTH = 5;
 const LANE_OFFSET = 2.4;
+
+// ---------- Sahifalar uchun kamera nuqtalari ----------
+interface Station {
+  z0: number; // scroll 0 dagi yo'l bo'yidagi joy
+  travel: number; // scroll davomida yo'l bo'ylab siljish
+  height: number; // boshlang'ich balandlik
+  side: number; // yo'ldan yon tomonga siljish
+  lookDist: number; // qanchalik uzoqqa qaraydi
+  pitch: number; // qarash nuqtasi kameradan qancha past
+  lookSide: number; // qarash nuqtasining yon siljishi
+}
+const STATION_KEYS = ["z0", "travel", "height", "side", "lookDist", "pitch", "lookSide"] as const;
+
+const STATIONS = {
+  // Vodiy tepasidan umumiy ko'rinish
+  home: { z0: 70, travel: 590, height: 165, side: -20, lookDist: 240, pitch: 26, lookSide: 0 },
+  // Temir Darvoza qal'alari turgan tepalik
+  // (qal'alar sarlavha va kartalar bilan to'silmasligi uchun ekranning o'ng-yuqorisiga tushadi)
+  tarix: { z0: -560, travel: 360, height: 70, side: -35, lookDist: 190, pitch: 40, lookSide: -150 },
+  // Yo'l bo'yidagi qishloq
+  kishilar: { z0: -40, travel: 320, height: 55, side: -28, lookDist: 170, pitch: 26, lookSide: 8 },
+  // Baland cho'qqilar orasidan
+  joylar: { z0: -300, travel: 420, height: 215, side: 140, lookDist: 320, pitch: 42, lookSide: -40 },
+  // Eng balanddan panorama
+  galereya: { z0: 220, travel: 640, height: 270, side: 0, lookDist: 440, pitch: 36, lookSide: -80 },
+  // Yo'l ustidan, mashinalar oqimi yonida
+  yangiliklar: { z0: -380, travel: 300, height: 36, side: 24, lookDist: 110, pitch: 18, lookSide: 0 },
+  // Chiroqlar yonida, past
+  aloqa: { z0: -190, travel: 260, height: 20, side: -12, lookDist: 80, pitch: 9, lookSide: 0 },
+} satisfies Record<string, Station>;
+
+const ROUTE_STATIONS: [string, keyof typeof STATIONS][] = [
+  ["/tarix", "tarix"],
+  ["/mashhur-kishilar", "kishilar"],
+  ["/diqqatga-sazovor-joylar", "joylar"],
+  ["/galereya", "galereya"],
+  ["/yangiliklar", "yangiliklar"],
+  ["/aloqa", "aloqa"],
+];
+
+function stationFor(pathname: string): Station {
+  for (const [prefix, key] of ROUTE_STATIONS) {
+    if (pathname === prefix || pathname.startsWith(`${prefix}/`)) return STATIONS[key];
+  }
+  return STATIONS.home;
+}
 
 // ---------- Yo'l egri chizig'i ----------
 function roadX(z: number) {
@@ -84,6 +133,15 @@ function terrainHeight(x: number, z: number) {
   return h * smoothstep(7, 16, d);
 }
 
+// Takrorlanadigan "tasodifiy" sonlar — qishloq har safar bir xil joylashsin
+function seededRandom(seed: number) {
+  let s = seed;
+  return () => {
+    s = (s * 16807) % 2147483647;
+    return s / 2147483647;
+  };
+}
+
 // ---------- Ranglar ----------
 const C_STEPPE = new THREE.Color("#8a7a52");
 const C_GRASS = new THREE.Color("#5f6443");
@@ -92,9 +150,10 @@ const C_ROCK_DARK = new THREE.Color("#3e3a55");
 const C_SNOW = new THREE.Color("#e4e6f0");
 
 function buildTerrain(lowPower: boolean) {
-  const width = 1100;
+  const width = 1500;
   const depth = Z_START - Z_END;
-  const plane = new THREE.PlaneGeometry(width, depth, lowPower ? 90 : 170, lowPower ? 130 : 250);
+  // Kattaroq qirralar: low-poly ko'rinishga mos va GPU uchun ~2 barobar yengil
+  const plane = new THREE.PlaneGeometry(width, depth, lowPower ? 90 : 150, lowPower ? 100 : 170);
   plane.rotateX(-Math.PI / 2);
   plane.translate(0, 0, (Z_START + Z_END) / 2);
 
@@ -134,6 +193,119 @@ function buildTerrain(lowPower: boolean) {
 
   const mat = new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 1, metalness: 0 });
   return new THREE.Mesh(geo, mat);
+}
+
+// ---------- Temir Darvoza qal'alari (Tarix sahifasi) ----------
+function buildFortresses() {
+  const group = new THREE.Group();
+  const wallMat = new THREE.MeshStandardMaterial({ color: "#b08b5e", flatShading: true, roughness: 1 });
+  const gateMat = new THREE.MeshStandardMaterial({ color: "#2e241e", roughness: 1 });
+
+  const wall = new THREE.BoxGeometry(32, 9, 26);
+  wall.translate(0, 4.5, 0);
+  const keep = new THREE.BoxGeometry(12, 17, 10);
+  keep.translate(-4, 8.5, -3);
+  const tower = new THREE.CylinderGeometry(3.2, 3.9, 13, 6);
+  tower.translate(0, 6.5, 0);
+  const gate = new THREE.BoxGeometry(5, 6, 0.6);
+  gate.translate(0, 3, 13.1);
+
+  const addFort = (z: number, sideOffset: number, scale: number) => {
+    const x = roadX(z) + sideOffset;
+    const half = 17 * scale;
+    // Qiyalikda osilib qolmasligi uchun eng past nuqtaga o'tqazamiz
+    const baseY =
+      Math.min(
+        ...[
+          [-1, -1],
+          [1, -1],
+          [-1, 1],
+          [1, 1],
+          [0, 0],
+        ].map(([a, b]) => terrainHeight(x + a * half, z + b * half)),
+      ) - 1;
+    const fort = new THREE.Group();
+    fort.position.set(x, baseY, z);
+    fort.scale.setScalar(scale);
+    fort.rotation.y = 0.3;
+    fort.add(new THREE.Mesh(wall, wallMat), new THREE.Mesh(keep, wallMat), new THREE.Mesh(gate, gateMat));
+    for (const [tx, tz] of [
+      [-16, -13],
+      [16, -13],
+      [-16, 13],
+      [16, 13],
+    ]) {
+      const t = new THREE.Mesh(tower, wallMat);
+      t.position.set(tx, 0, tz);
+      fort.add(t);
+    }
+    group.add(fort);
+  };
+
+  // Pastdagi katta qal'a va tepadagi kichigi
+  addFort(-760, 42, 1);
+  addFort(-830, 78, 0.7);
+
+  return {
+    object: group,
+    dispose() {
+      [wall, keep, tower, gate, wallMat, gateMat].forEach((d) => d.dispose());
+    },
+  };
+}
+
+// ---------- Qishloq (Mashhur kishilar sahifasi) ----------
+function buildVillage(lowPower: boolean) {
+  const rand = seededRandom(7);
+  const group = new THREE.Group();
+
+  const houseCount = lowPower ? 32 : 54;
+  const houseGeo = new THREE.BoxGeometry(1, 1, 1);
+  houseGeo.translate(0, 0.5, 0);
+  const houseMat = new THREE.MeshStandardMaterial({ flatShading: true, roughness: 1 });
+  const houses = new THREE.InstancedMesh(houseGeo, houseMat, houseCount);
+
+  // Teraklar: baland va ingichka
+  const treeCount = lowPower ? 36 : 70;
+  const treeGeo = new THREE.ConeGeometry(1.3, 1, 5);
+  treeGeo.translate(0, 0.5, 0);
+  const treeMat = new THREE.MeshStandardMaterial({ color: "#4f6b3d", flatShading: true, roughness: 1 });
+  const trees = new THREE.InstancedMesh(treeGeo, treeMat, treeCount);
+
+  const wallColors = ["#dccfb2", "#e8dfca", "#c9b48f", "#efe8d8"];
+  const dummy = new THREE.Object3D();
+  const color = new THREE.Color();
+
+  for (let i = 0; i < houseCount; i++) {
+    const z = -110 - rand() * 240;
+    const side = rand() < 0.5 ? -1 : 1;
+    const x = roadX(z) + side * (15 + rand() * 42);
+    dummy.position.set(x, terrainHeight(x, z) - 0.4, z);
+    dummy.rotation.set(0, -Math.atan(roadSlope(z)) + (rand() - 0.5) * 0.3, 0);
+    dummy.scale.set(5 + rand() * 4, 3 + rand() * 1.4, 5 + rand() * 5);
+    dummy.updateMatrix();
+    houses.setMatrixAt(i, dummy.matrix);
+    houses.setColorAt(i, color.set(wallColors[i % wallColors.length]));
+  }
+  for (let i = 0; i < treeCount; i++) {
+    const z = -100 - rand() * 260;
+    const side = rand() < 0.5 ? -1 : 1;
+    const x = roadX(z) + side * (9 + rand() * 55);
+    const h = 7 + rand() * 5;
+    dummy.position.set(x, terrainHeight(x, z) - 0.2, z);
+    dummy.rotation.set(0, 0, 0);
+    dummy.scale.set(1, h, 1);
+    dummy.updateMatrix();
+    trees.setMatrixAt(i, dummy.matrix);
+  }
+  group.add(houses, trees);
+
+  return {
+    object: group,
+    dispose() {
+      [houseGeo, houseMat, treeGeo, treeMat, houses, trees].forEach((d) => d.dispose());
+    },
+  };
 }
 
 // ---------- Osmon ----------
@@ -258,15 +430,18 @@ const WHEEL_OFFSETS = [
 ];
 
 export function createLandscape(canvas: HTMLCanvasElement, opts: LandscapeOptions): Landscape {
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: !opts.lowPower, powerPreference: "high-performance" });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, opts.lowPower ? 1 : 1.5));
+  // Fon dekorativ, kontent ostida turadi: MSAA va yuqori DPR shart emas, ularni o'chirish FPS'ni keskin oshiradi
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: "high-performance" });
+  const basePixelRatio = Math.min(window.devicePixelRatio, 1);
+  let renderScale = opts.lowPower ? 0.7 : 1;
+  renderer.setPixelRatio(basePixelRatio * renderScale);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.3;
 
   const scene = new THREE.Scene();
   scene.fog = new THREE.FogExp2("#8a6f86", 0.0019);
-  const camera = new THREE.PerspectiveCamera(55, 1, 0.5, 2400);
+  const camera = new THREE.PerspectiveCamera(55, 1, 0.5, 2000);
 
   const sunDir = new THREE.Vector3(-0.55, 0.06, -1).normalize();
   const sky = buildSky(sunDir);
@@ -279,7 +454,9 @@ export function createLandscape(canvas: HTMLCanvasElement, opts: LandscapeOption
   scene.add(sun);
 
   const terrain = buildTerrain(opts.lowPower);
-  scene.add(terrain);
+  const fortresses = buildFortresses();
+  const village = buildVillage(opts.lowPower);
+  scene.add(terrain, fortresses.object, village.object);
 
   // Asfalt, chekka chiziqlar va o'rtadagi uzuq chiziq
   const road = new THREE.Mesh(
@@ -322,8 +499,8 @@ export function createLandscape(canvas: HTMLCanvasElement, opts: LandscapeOption
   const lampMat = glowMaterial("#ffd38a", 5);
   scene.add(new THREE.Points(lampGeo, lampMat));
 
-  // Mashinalar — instanced, shuning uchun 40 ta mashina ham bir necha draw call
-  const carCount = opts.lowPower ? 22 : 40;
+  // Mashinalar — instanced, shuning uchun o'nlab mashina ham bir necha draw call
+  const carCount = opts.lowPower ? 30 : 56;
   const cars: Car[] = Array.from({ length: carCount }, (_, i) => ({
     dir: i % 2 === 0 ? -1 : 1,
     phase: Math.random(),
@@ -371,8 +548,9 @@ export function createLandscape(canvas: HTMLCanvasElement, opts: LandscapeOption
   const quat = new THREE.Quaternion();
   const yAxis = new THREE.Vector3(0, 1, 0);
   const one = new THREE.Vector3(1, 1, 1);
-  const loopLength = 900;
-  const loopStart = 120;
+  // Barcha sahifalarning yo'l qismini qamrab oladi
+  const loopLength = 1150;
+  const loopStart = 150;
 
   function updateCars(time: number) {
     for (let i = 0; i < carCount; i++) {
@@ -383,7 +561,7 @@ export function createLandscape(canvas: HTMLCanvasElement, opts: LandscapeOption
       const len = Math.hypot(1, s);
       // O'ng tomonlama harakat: −z ga ketayotganlar yo'lning +normal tomonida
       const lane = car.dir === -1 ? LANE_OFFSET : -LANE_OFFSET;
-      const x = roadX(z) + (lane * 1) / len;
+      const x = roadX(z) + lane / len;
       const zz = z - (lane * s) / len;
       // Mashinaning oldi lokal +z, harakat yo'nalishiga buramiz
       quat.setFromAxisAngle(yAxis, Math.atan2(car.dir * s, car.dir));
@@ -416,24 +594,29 @@ export function createLandscape(canvas: HTMLCanvasElement, opts: LandscapeOption
     stars.geometry, stars.material as THREE.Material, road.geometry, road.material as THREE.Material,
     edgeL.geometry, edgeR.geometry, lineMat, center.geometry, centerMat, poleGeo, poleMat, lampGeo,
     lampMat, glow, bodyGeo, cabinGeo, wheelGeo, bodyMat, cabinMat, wheelMat, headGeo, tailGeo, headMat, tailMat,
-    poles, bodies, cabins, wheels,
+    poles, bodies, cabins, wheels, fortresses, village,
   ];
 
-  // ---------- Kamera yo'li ----------
+  // ---------- Kamera ----------
   let target = 0;
   let current = 0;
+  const targetStation: Station = { ...stationFor(opts.pathname) };
+  const station: Station = { ...targetStation };
   const lookAt = new THREE.Vector3();
   const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
 
   function placeCamera(p: number, time: number) {
+    const s = station;
     const e = ease(p);
-    const z = 70 - p * 590;
-    const sway = Math.sin(time * 0.15) * 1.5 * (1 - p);
-    const camY = 165 - e * 157.5;
-    camera.position.set(roadX(z) - (1 - e) * 20 + sway, camY, z);
-    // Boshida ufqqa deyarli tekis qaraydi (osmon ko'rinadi), oxirida yo'lga
-    const lz = z - (240 - e * 195);
-    lookAt.set(roadX(lz), camY - (26 - e * 21), lz);
+    const z = s.z0 - p * s.travel;
+    // Sahifadan sahifaga uchayotganda tog'lar ustidan oshib o'tish uchun ko'tariladi
+    const flight = Math.abs(targetStation.z0 - s.z0) + Math.abs(targetStation.side - s.side);
+    const lift = Math.min(flight * 0.3, 120);
+    const camY = s.height - e * (s.height - 7.5) + lift;
+    const sway = opts.reducedMotion ? 0 : Math.sin(time * 0.15) * 1.5 * (1 - p);
+    camera.position.set(roadX(z) + s.side * (1 - e) + sway, camY, z);
+    const lz = z - (s.lookDist - e * (s.lookDist - 45));
+    lookAt.set(roadX(lz) + s.lookSide * (1 - e), camY - lift - (s.pitch - e * (s.pitch - 5)), lz);
     camera.lookAt(lookAt);
     sky.position.copy(camera.position);
     stars.position.copy(camera.position);
@@ -460,42 +643,80 @@ export function createLandscape(canvas: HTMLCanvasElement, opts: LandscapeOption
 
   function drawStatic() {
     current = target;
+    Object.assign(station, targetStation);
     resize();
     placeCamera(current, 0);
     updateCars(FROZEN_TIME);
     renderer.render(scene, camera);
   }
 
+  // Adaptiv sifat: kadrlar sekinlashsa render o'lchamini kamaytiramiz, tez bo'lsa asta qaytaramiz
+  let frameTimeSum = 0;
+  let frameCount = 0;
+  function adaptQuality(dt: number) {
+    frameTimeSum += dt;
+    frameCount++;
+    if (frameCount < 45) return;
+    const avgMs = (frameTimeSum / frameCount) * 1000;
+    frameTimeSum = 0;
+    frameCount = 0;
+    let next = renderScale;
+    if (avgMs > 20 && renderScale > 0.5) next = Math.max(0.5, renderScale - 0.15);
+    else if (avgMs < 15 && renderScale < 1) next = Math.min(1, renderScale + 0.05);
+    if (next !== renderScale) {
+      renderScale = next;
+      renderer.setPixelRatio(basePixelRatio * renderScale);
+      resize();
+    }
+  }
+
   function loop() {
     if (!running) return;
     frame = requestAnimationFrame(loop);
-    if (document.hidden) return;
+    if (document.hidden) {
+      clock.getDelta();
+      return;
+    }
     const dt = Math.min(clock.getDelta(), 0.1);
     const time = clock.elapsedTime;
-    current += (target - current) * (1 - Math.exp(-dt * 4));
+    adaptQuality(dt);
+    current += (target - current) * (1 - Math.exp(-dt * 6));
+    // Sahifalar orasida uchish ~1 soniyada yakunlanadi
+    const k = 1 - Math.exp(-dt * 3.2);
+    for (const key of STATION_KEYS) station[key] += (targetStation[key] - station[key]) * k;
     placeCamera(current, time);
     updateCars(time);
     renderer.render(scene, camera);
   }
 
+  const disposeAll = () => {
+    disposables.forEach((d) => d.dispose());
+    renderer.dispose();
+  };
+
   if (opts.reducedMotion) {
-    // Harakatni kamaytirish yoqilgan: mashinalar to'xtab turadi, faqat scroll bo'yicha chiziladi
+    // Harakatni kamaytirish yoqilgan: uchish ham, mashinalar ham yo'q — faqat kerak bo'lganda chizamiz
     running = false;
     drawStatic();
     ro.disconnect();
-    const onResize = () => drawStatic();
-    window.addEventListener("resize", onResize);
+    const redraw = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(drawStatic);
+    };
+    window.addEventListener("resize", redraw);
     return {
       setProgress(p) {
         target = p;
-        cancelAnimationFrame(frame);
-        frame = requestAnimationFrame(drawStatic);
+        redraw();
+      },
+      setRoute(pathname) {
+        Object.assign(targetStation, stationFor(pathname));
+        redraw();
       },
       dispose() {
         cancelAnimationFrame(frame);
-        window.removeEventListener("resize", onResize);
-        disposables.forEach((d) => d.dispose());
-        renderer.dispose();
+        window.removeEventListener("resize", redraw);
+        disposeAll();
       },
     };
   }
@@ -506,12 +727,14 @@ export function createLandscape(canvas: HTMLCanvasElement, opts: LandscapeOption
     setProgress(p) {
       target = p;
     },
+    setRoute(pathname) {
+      Object.assign(targetStation, stationFor(pathname));
+    },
     dispose() {
       running = false;
       cancelAnimationFrame(frame);
       ro.disconnect();
-      disposables.forEach((d) => d.dispose());
-      renderer.dispose();
+      disposeAll();
     },
   };
 }

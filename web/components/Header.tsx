@@ -20,7 +20,7 @@ export default function Header() {
   const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-qor-50/10 bg-tun-950/55 backdrop-blur-md">
+    <header className="sticky top-0 z-50 border-b border-qor-50/10 bg-tun-950/[0.86]">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-6 px-5 py-3.5 sm:px-8">
         <Link href="/" className="flex items-center gap-3" onClick={() => setOpen(false)}>
           <ArchMark className="h-9 w-9 text-zar-400" />

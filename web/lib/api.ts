@@ -8,6 +8,8 @@ async function safeGet<T>(path: string, fallback: T): Promise<T> {
   try {
     const res = await fetch(`${API_URL}${path}`, {
       next: { revalidate: 60 },
+      // Backend sekin yoki "uxlab" qolgan bo'lsa sahifa kutib qolmasin — fallback bilan davom etamiz
+      signal: AbortSignal.timeout(4000),
     });
     if (!res.ok) return fallback;
     return (await res.json()) as T;

@@ -1,25 +1,34 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import type { Landscape } from "@/lib/scene/landscape";
 
 // Butun sayt ortidagi 3D manzara. three.js alohida chunk sifatida faqat brauzerda yuklanadi.
+// Sahna bir marta yaratiladi; sahifa almashganda faqat kamera yangi sahifa joyiga uchadi.
 export default function SceneBackground() {
+  const pathname = usePathname();
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const landscapeRef = useRef<Landscape | null>(null);
+  const pathnameRef = useRef(pathname);
   const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    pathnameRef.current = pathname;
+    landscapeRef.current?.setRoute(pathname);
+  }, [pathname]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    let landscape: Landscape | null = null;
     let cancelled = false;
 
     const progress = () => {
       const max = document.documentElement.scrollHeight - window.innerHeight;
       return max > 0 ? Math.min(1, Math.max(0, window.scrollY / max)) : 0;
     };
-    const onScroll = () => landscape?.setProgress(progress());
+    const onScroll = () => landscapeRef.current?.setProgress(progress());
 
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const lowPower = window.innerWidth < 768 || (navigator.hardwareConcurrency ?? 8) <= 4;
@@ -28,12 +37,16 @@ export default function SceneBackground() {
       .then(({ createLandscape }) => {
         if (cancelled) return;
         try {
-          landscape = createLandscape(canvas, { reducedMotion, lowPower });
+          landscapeRef.current = createLandscape(canvas, {
+            reducedMotion,
+            lowPower,
+            pathname: pathnameRef.current,
+          });
         } catch {
           // WebGL mavjud emas — CSS gradient fon qoladi
           return;
         }
-        landscape.setProgress(progress());
+        landscapeRef.current.setProgress(progress());
         setReady(true);
       })
       .catch(() => {});
@@ -49,7 +62,8 @@ export default function SceneBackground() {
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onScroll);
       ro.disconnect();
-      landscape?.dispose();
+      landscapeRef.current?.dispose();
+      landscapeRef.current = null;
     };
   }, []);
 

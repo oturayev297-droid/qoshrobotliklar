@@ -14,7 +14,7 @@ export default function Footer() {
         </div>
       </div>
 
-      <div className="border-t border-qor-50/10 bg-tun-950/80 backdrop-blur-md">
+      <div className="border-t border-qor-50/10 bg-tun-950/[0.9]">
         <div className="mx-auto grid max-w-7xl gap-10 px-5 py-12 sm:px-8 md:grid-cols-[2fr,1fr,1fr]">
           <div>
             <div className="flex items-center gap-3">

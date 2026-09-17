@@ -29,17 +29,18 @@ body {
 }
 
 @layer components {
+  /* backdrop-blur ishlatilmaydi: animatsiyali 3D fon ustida u har kadrda qayta hisoblanib FPS'ni tushiradi */
   .panel {
-    @apply rounded-[28px] border border-qor-50/10 bg-tun-900/75 backdrop-blur-md;
+    @apply rounded-[28px] border border-qor-50/10 bg-tun-900/[0.88];
   }
   .tile {
-    @apply rounded-2xl border border-qor-50/10 bg-tun-950/65 backdrop-blur-sm transition-colors;
+    @apply rounded-2xl border border-qor-50/10 bg-tun-950/[0.82] transition-colors;
   }
   .btn-primary {
     @apply inline-flex items-center justify-center rounded-full bg-zar-400 px-6 py-3 text-sm font-semibold text-tun-950 transition-colors hover:bg-zar-300 disabled:opacity-60;
   }
   .btn-ghost {
-    @apply inline-flex items-center justify-center rounded-full border border-qor-50/25 bg-tun-950/30 px-6 py-3 text-sm font-semibold text-qor-50 backdrop-blur-sm transition-colors hover:bg-qor-50/10;
+    @apply inline-flex items-center justify-center rounded-full border border-qor-50/25 bg-tun-950/50 px-6 py-3 text-sm font-semibold text-qor-50 transition-colors hover:bg-qor-50/10;
   }
   .link {
     @apply font-semibold text-zar-300 underline-offset-4 hover:underline;
